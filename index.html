@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de costos y ganancias</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #eef1f7; color: #1f2937;
+  }
+  .app { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; text-align: center; margin: 0 0 18px; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 16px;
+    margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 4px; }
+  .hint { font-size: .8rem; color: #6b7280; margin: 0 0 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row input {
+    flex: 1; min-width: 0; padding: 10px 12px;
+    border: 1px solid #d1d5db; border-radius: 9px; font-size: .95rem;
+  }
+  .row input[type=number] { max-width: 120px; }
+  .row input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
+  button {
+    cursor: pointer; border: none; border-radius: 9px;
+    padding: 10px 14px; font-size: .9rem; font-weight: 600;
+    background: #2563eb; color: #fff; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  ul { list-style: none; padding: 0; margin: 12px 0 0; }
+  li {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px dashed #e5e7eb; font-size: .9rem;
+  }
+  li span:first-child { flex: 1; }
+  li .price { font-weight: 600; }
+  .del {
+    background: transparent; color: #ef4444;
+    padding: 2px 8px; font-size: 1.15rem; line-height: 1;
+  }
+  .total { margin-top: 12px; text-align: right; font-size: .95rem; color: #374151; }
+  .total b { color: #111827; font-size: 1.05rem; }
+
+  .results {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-top: 4px;
+  }
+  .res {
+    background: #f9fafb; border: 1px solid #e5e7eb;
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .res .label {
+    font-size: .72rem; color: #6b7280;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .res .value { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
+  .good { color: #059669; }
+  .bad  { color: #dc2626; }
+  .wide { grid-column: 1 / -1; }
+
+  .mensaje {
+    margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+    font-size: .9rem; line-height: 1.45;
+  }
+  .msg-ok   { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+  .msg-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+  .msg-bad  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .footer { display: flex; justify-content: center; margin-bottom: 30px; }
+  .btn-ghost { background: #e5e7eb; color: #374151; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <h1>💰 Calculadora de costos y ganancias</h1>
+
+  <!-- 1. COSTOS VARIABLES -->
+  <section class="card">
+    <h2>1. Costos variables</h2>
+    <p class="hint">Ingredientes, empaque, gas, salsa… todo lo que depende de cuánto produzcas.</p>
+    <div class="row">
+      <input id="variablesName" type="text" placeholder="Nombre (ej. Papa)">
+      <input id="variablesPrice" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Precio">
+      <button data-add="variables">Agregar</button>
+    </div>
+    <ul id="variablesList"></ul>
+    <div class="total">Total costos variables: <b id="variablesTotal">$0.00</b></div>
+  </section>
+
+  <!-- 2. COSTOS FIJOS -->
+  <section class="card">
+    <h2>2. Costos fijos</h2>
+    <p class="hint">Permiso, cuota del lugar, transporte, gasolina… lo que pagas aunque vendas poco.</p>
+    <div class="row">
+      <input id="fijosName" type="text" placeholder="Nombre (ej. Permiso)">
+      <input id="fijosPrice" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Precio">
+      <button data-add="fijos">Agregar</button>
+    </div>
+    <ul id="fijosList"></ul>
+    <div class="total">Total costos fijos: <b id="fijosTotal">$0.00</b></div>
+  </section>
+
+  <!-- 3. INVERSIÓN INICIAL -->
+  <section class="card">
+    <h2>3. Inversión inicial</h2>
+    <p class="hint">Carrito, freidora, vaporera, utensilios, letrero… lo que compras una sola vez.</p>
+    <div class="row">
+      <input id="inversionName" type="text" placeholder="Nombre (ej. Carrito)">
+      <input id="inversionPrice" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Precio">
+      <button data-add="inversion">Agregar</button>
+    </div>
+    <ul id="inversionList"></ul>
+    <div class="total">Total inversión inicial: <b id="inversionTotal">$0.00</b></div>
+  </section>
+
+  <!-- 4. PRODUCCIÓN Y PRECIO -->
+  <section class="card">
+    <h2>4. Producción y precio de venta</h2>
+    <p class="hint">Los costos de arriba son de un lote completo. Aquí dices cuántas unidades rinde ese lote.</p>
+    <div class="row">
+      <input id="unidades" type="number" step="1" min="0" inputmode="numeric" placeholder="Unidades producidas por lote">
+      <input id="precioVenta" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Precio de venta por unidad">
+    </div>
+  </section>
+
+  <!-- 5. RESULTADOS -->
+  <section class="card">
+    <h2>5. Resultados</h2>
+    <div id="resultados" class="results"></div>
+    <div id="mensaje"></div>
+  </section>
+
+  <div class="footer">
+    <button class="btn-ghost" id="reset">Limpiar todo</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const fmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+  const state = { variables: [], fijos: [], inversion: [] };
+  let uid = 0;
+
+  const $ = (id) => document.getElementById(id);
+
+  const sum = (tipo) => state[tipo].reduce((acc, item) => acc + item.price, 0);
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+
+  /* ---------- Agregar / eliminar ---------- */
+
+  function addItem(tipo) {
+    const nameEl  = $(tipo + "Name");
+    const priceEl = $(tipo + "Price");
+    const name    = nameEl.value.trim();
+    const price   = parseFloat(priceEl.value);
+
+    if (!name) { nameEl.focus(); return; }
+    if (!isFinite(price) || price <= 0) { priceEl.focus(); return; }
+
+    state[tipo].push({ id: ++uid, name: name, price: price });
+    nameEl.value = "";
+    priceEl.value = "";
+    nameEl.focus();
+    render();
+  }
+
+  function removeItem(tipo, id) {
+    state[tipo] = state[tipo].filter((i) => i.id !== id);
+    render();
+  }
+
+  /* ---------- Render de listas ---------- */
+
+  function render() {
+    ["variables", "fijos", "inversion"].forEach((tipo) => {
+      const ul = $(tipo + "List");
+      ul.innerHTML = state[tipo].map((i) =>
+        '<li>' +
+          '<span>' + esc(i.name) + '</span>' +
+          '<span class="price">' + fmt.format(i.price) + '</span>' +
+          '<button class="del" data-tipo="' + tipo + '" data-id="' + i.id + '" title="Eliminar">×</button>' +
+        '</li>'
+      ).join("");
+      $(tipo + "Total").textContent = fmt.format(sum(tipo));
+    });
+    calcular();
+  }
+
+  /* ---------- Cálculos ---------- */
+
+  function calcular() {
+    const unidades = parseFloat($("unidades").value) || 0;
+    const precio   = parseFloat($("precioVenta").value) || 0;
+
+    const totalVar = sum("variables");
+    const totalFij = sum("fijos");
+    const totalInv = sum("inversion");
+
+    const cvUnit   = unidades > 0 ? totalVar / unidades : 0;   // costo variable por unidad
+    const cfUnit   = unidades > 0 ? totalFij / unidades : 0;   // costo fijo por unidad
+    const costoUni = cvUnit + cfUnit;                          // costo unitario total
+    const ganancia = precio - costoUni;                        // ganancia por unidad
+    const margen   = precio > 0 ? (ganancia / precio) * 100 : 0;
+    const gananciaLote = ganancia * unidades;
+
+    const contribucion = precio - cvUnit;                      // lo que aporta cada venta
+    const puntoEq = (unidades > 0 && contribucion > 0)
+      ? Math.ceil(totalFij / contribucion)
+      : null;
+
+    const lotesInv = gananciaLote > 0
+      ? Math.ceil(totalInv / gananciaLote)
+      : null;
+
+    const clsGan = ganancia >= 0 ? "good" : "bad";
+
+    const filas = [
+      { label: "Costo variable por unidad", value: fmt.format(cvUnit) },
+      { label: "Costo fijo por unidad",     value: fmt.format(cfUnit) },
+      { label: "Costo unitario total",      value: fmt.format(costoUni) },
+      { label: "Precio de venta",           value: fmt.format(precio) },
+      { label: "Ganancia por unidad",       value: fmt.format(ganancia), cls: clsGan },
+      { label: "Margen",                    value: margen.toFixed(1) + "%", cls: clsGan },
+      { label: "Ganancia por lote (" + unidades + " u)", value: fmt.format(gananciaLote), cls: gananciaLote >= 0 ? "good" : "bad" },
+      { label: "Punto de equilibrio",       value: puntoEq === null ? "—" : puntoEq + " unidades" },
+      { label: "Recuperas la inversión en", value: lotesInv === null ? "—" : lotesInv + " lotes" },
+      { label: "Inversión inicial total",   value: fmt.format(totalInv) }
+    ];
+
+    $("resultados").innerHTML = filas.map((f) =>
+      '<div class="res">' +
+        '<div class="label">' + f.label + '</div>' +
+        '<div class="value ' + (f.cls || "") + '">' + f.value + '</div>' +
+      '</div>'
+    ).join("");
+
+    /* ----- Mensajes de aviso ----- */
+    const msg = $("mensaje");
+    msg.className = "mensaje";
+    msg.innerHTML = "";
+
+    if (precio <= 0 || unidades <= 0 || (totalVar + totalFij) <= 0) {
+      return; // todavía no hay datos suficientes
+    }
+
+    if (ganancia < 0) {
+      msg.className = "mensaje msg-bad";
+      msg.innerHTML = "⚠️ <b>Estás vendiendo por debajo del costo.</b> Cada unidad pierde " +
+        fmt.format(Math.abs(ganancia)) + ". Sube el precio o baja los costos.";
+    } else if (puntoEq !== null && unidades < puntoEq) {
+      msg.className = "mensaje msg-warn";
+      msg.innerHTML = "⚠️ Produces <b>" + unidades + "</b> unidades, pero necesitas vender al menos <b>" +
+        puntoEq + "</b> para cubrir los costos fijos. Ajusta la cantidad o el precio.";
+    } else {
+      msg.className = "mensaje msg-ok";
+      msg.innerHTML = "✅ <b>Con estas cantidades cubres tus costos.</b> Ganancia estimada del lote: <b>" +
+        fmt.format(gananciaLote) + "</b>.";
+    }
+  }
+
+  /* ---------- Eventos ---------- */
+
+  document.querySelectorAll("[data-add]").forEach((btn) => {
+    btn.addEventListener("click", () => addItem(btn.dataset.add));
+  });
+
+  ["variables", "fijos", "inversion"].forEach((tipo) => {
+    ["Name", "Price"].forEach((sufijo) => {
+      $(tipo + sufijo).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); addItem(tipo); }
+      });
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".del");
+    if (btn) removeItem(btn.dataset.tipo, Number(btn.dataset.id));
+  });
+
+  ["unidades", "precioVenta"].forEach((id) => {
+    $(id).addEventListener("input", calcular);
+  });
+
+  $("reset").addEventListener("click", () => {
+    if (!confirm("¿Borrar todos los datos?")) return;
+    state.variables = [];
+    state.fijos = [];
+    state.inversion = [];
+    $("unidades").value = "";
+    $("precioVenta").value = "";
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
